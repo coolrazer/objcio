@@ -7,40 +7,71 @@
 //
 
 #import "AppDelegate.h"
+#import "Reader.h"
+
+@interface AppDelegate ()
+
+@property (nonatomic, strong) Reader *reader;
+@property (nonatomic, strong) UIButton *button;
+@property (nonatomic, strong) UILabel *label;
+
+@end
+
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-    // Override point for customization after application launch.
+    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    self.window.backgroundColor = [UIColor whiteColor];
+    
+    [self addViews];
+    
+    [self.window makeKeyAndVisible];
+    
     return YES;
 }
-							
-- (void)applicationWillResignActive:(UIApplication *)application
+
+- (void)addViews
 {
-    // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-    // Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+    self.button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    self.button.frame = CGRectMake(0, 10, 320, 100);
+    [self.button addTarget:self action:@selector(import:) forControlEvents:UIControlEventTouchUpInside];
+    [self.button setTitle:@"Press Me" forState:UIControlStateNormal];
+    [self.window addSubview:self.button];
+    
+    UISlider *slider = [[UISlider alloc] initWithFrame:CGRectMake(0, 120, 320, 64)];
+    slider.continuous = YES;
+    [slider addTarget:self action:@selector(sliderMoved:) forControlEvents:UIControlEventValueChanged];
+    [self.window addSubview:slider];
+    
+    self.label = [[UILabel alloc] initWithFrame:CGRectMake(0, 200, 320, 64)];
+    self.label.textAlignment = NSTextAlignmentCenter;
+    [self.window addSubview:self.label];
 }
 
-- (void)applicationDidEnterBackground:(UIApplication *)application
+- (void)sliderMoved:(UISlider *)sender;
 {
-    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
-    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    self.label.text = [NSString stringWithFormat:@"%g", [sender value]];
 }
 
-- (void)applicationWillEnterForeground:(UIApplication *)application
+- (void)import:(id)sender
 {
-    // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
-}
-
-- (void)applicationDidBecomeActive:(UIApplication *)application
-{
-    // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-}
-
-- (void)applicationWillTerminate:(UIApplication *)application
-{
-    // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    NSURL *fileURL = [[NSBundle mainBundle] URLForResource:@"Clarissa Harlowe" withExtension:@"txt"];
+    NSAssert([[NSFileManager defaultManager] fileExistsAtPath:[fileURL path]], @"Please download the sample data");
+    
+    self.reader = [[Reader alloc] initWithFileAtURL:fileURL];
+    [self.reader enumerateLinesWithBlock:^(NSUInteger i, NSString *line){
+        if ((i % 2000ull) == 0) {
+            NSLog(@"i: %d", i);
+            [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+                [self.button setTitle:line forState:UIControlStateNormal];
+            }];
+        }
+    } completionHandler:^(NSUInteger numberOfLines){
+        NSLog(@"lines: %d", numberOfLines);
+        [self.button setTitle:@"Done" forState:UIControlStateNormal];
+    }];
 }
 
 @end
